@@ -1,0 +1,46 @@
+name: mindspore hub integration
+
+on:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  mindspore_hub_integration:
+    runs-on: ubuntu-latest
+    env:
+      # TODO quickfix but may need more investigation
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: True
+    steps:
+    # no checkout necessary here.
+    - name: Extract branch name
+      run: echo "::set-env name=BRANCH::${GITHUB_REF#refs/heads/}"
+    - name: Check branch name
+      run: echo $BRANCH
+    - name: Set up Python
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+
+    - name: Loading cache
+      uses: actions/cache@v2
+      id: cache
+      with:
+        path: ~/.cache/pip
+        key: v0-mindspore_hub-${{ hashFiles('setup.py') }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        # install mindspore-hub specific dependencies
+        pip install -e git+https://github.com/huggingface/transformers.git#egg=transformers[mindsporehub]
+        # no longer needed
+        pip uninstall -y transformers
+
+    - name: mindspore hub list
+      run: |
+        python -c "import mindspore; print(mindspore.hub.list('huggingface/transformers:$BRANCH'))"
+
+    - name: mindspore hub help
+      run: |
+        python -c "import mindspore; print(mindspore.hub.help('huggingface/transformers:$BRANCH', 'modelForSequenceClassification'))"
